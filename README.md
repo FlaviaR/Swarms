@@ -1,2 +1,2 @@
 # Swarms
-investigating swarming techniques
+Investigating swarming techniques
