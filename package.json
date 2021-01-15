@@ -1,0 +1,21 @@
+{
+  "name": "swarms",
+  "version": "1.0.0",
+  "description": "investigating swarming techniques",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "build-client": "cd client && npm run build",
+    "heroku-postbuild": "cd client && npm install && npm run build"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FlaviaR/Swarms/issues"
+  },
+  "homepage": "https://github.com/FlaviaR/Swarms#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "webpack": "^5.15.0"
+  }
+}
