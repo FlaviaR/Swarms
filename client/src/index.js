@@ -1,9 +1,22 @@
-//https://eater.net/boids
+// Boids is an artificial life program, developed by Craig Reynolds in 1986, 
+// which simulates the flocking behaviour of birds.
+// Boids follow three main rules: 
+// separation: steer to avoid crowding local flockmates
+// alignment: steer towards the average heading of local flockmates
+// cohesion: steer to move towards the average position (center of mass) of local flockmates
+// https://en.wikipedia.org/wiki/Boids
+// Basis - https://eater.net/boids
+
+// To do ->
+// make boids avoid obstacles
+// color code boids based on what theyre currently doing
+// allow boids to "perch" when tired
+// add a predator
 
 const width = 750;
 const height = 750;
 
-const boidVisualRange = 50;
+const boidVisualRange = 75;
 const numBoids = 10;
 
 var boids = [];
@@ -46,7 +59,7 @@ function keepBoidsWithinBounds(boid) {
   }
 }
 
-function flyTowardsOtherBoids(givenBoid) {
+function maintainCohesion(givenBoid) {
   let turningFactor = 0.01
   let numOfBoids = 0;
   let centerOfMassX = 0;
@@ -67,6 +80,43 @@ function flyTowardsOtherBoids(givenBoid) {
 
 }
 
+function maintainAlignment(givenBoid) {
+  let turningFactor = 0.01
+  let numOfBoids = 0;
+  let velocityX = 0;
+  let velocityY = 0;
+
+  for (let boid of boids) {
+    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange) {
+      velocityX += boid.dx;
+      velocityY += boid.dy;
+      numOfBoids++;
+    }
+  }
+
+  if (numOfBoids > 0) {
+    givenBoid.dx += (velocityX/numOfBoids - givenBoid.dx) * turningFactor;
+    givenBoid.dy += (velocityY/numOfBoids - givenBoid.dy) * turningFactor;
+  }
+}
+
+function maintainSeparation(givenBoid) {
+  let distanceFactor = 50;
+  let avoidanceFactor = 0.01;
+  let positionX = 0;
+  let positionY = 0; 
+
+  for (let boid of boids) {
+    if (distanceBetweenBoids(givenBoid, boid) <= distanceFactor) {
+      positionX += (givenBoid.x - boid.x);
+      positionY += (givenBoid.y - boid.y);
+    }
+  }
+
+  givenBoid.dx += positionX * avoidanceFactor;
+  givenBoid.dy += positionY * avoidanceFactor;
+}
+
 // Main animation loop
 // Problem with set interval occurs if the 
 // number of instructions arent completed before the next loop
@@ -80,9 +130,10 @@ function animationLoop() {
 
     for (let boid of boids) {
       // Update the velocities according to each rule
-      //flyTowardsOtherBoids(boid);
       keepBoidsWithinBounds(boid);
-      flyTowardsOtherBoids(boid);
+      maintainCohesion(boid);
+      maintainAlignment(boid);
+      maintainSeparation(boid);
       drawBoid(ctx, boid);
 
       boid.x += boid.dx;
