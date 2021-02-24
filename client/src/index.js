@@ -1,8 +1,9 @@
 //https://eater.net/boids
 
-let width = 750;
-let height = 750;
+const width = 750;
+const height = 750;
 
+const boidVisualRange = 50;
 const numBoids = 10;
 
 var boids = [];
@@ -17,6 +18,10 @@ function initBoids() {
       history: [],
     };
   }
+}
+
+function distanceBetweenBoids(boid1, boid2) {
+  return Math.sqrt(Math.pow(boid1.x - boid2.x, 2) + Math.pow(boid1.y - boid2.y, 2))
 }
 
 function keepBoidsWithinBounds(boid) {
@@ -41,12 +46,30 @@ function keepBoidsWithinBounds(boid) {
   }
 }
 
-function flyTowardsOtherBoids(boid) {
-  boid.x += 1;
-  boid.y += 1;
+function flyTowardsOtherBoids(givenBoid) {
+  let turningFactor = 0.01
+  let numOfBoids = 0;
+  let centerOfMassX = 0;
+  let centerOfMassY = 0;
+
+  for (let boid of boids) {
+    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange) {
+      centerOfMassX += boid.x;
+      centerOfMassY += boid.y;
+      numOfBoids++;
+    }
+  }
+
+  if (numOfBoids > 0) {
+    givenBoid.dx += (centerOfMassX/numOfBoids - givenBoid.x) * turningFactor;
+    givenBoid.dy += (centerOfMassY/numOfBoids - givenBoid.y) * turningFactor;
+  }
+
 }
 
 // Main animation loop
+// Problem with set interval occurs if the 
+// number of instructions arent completed before the next loop
 function animationLoop() {
   let start = Date.now();
   const ctx = document.getElementById("boids").getContext("2d");
@@ -59,13 +82,14 @@ function animationLoop() {
       // Update the velocities according to each rule
       //flyTowardsOtherBoids(boid);
       keepBoidsWithinBounds(boid);
+      flyTowardsOtherBoids(boid);
       drawBoid(ctx, boid);
 
       boid.x += boid.dx;
       boid.y += boid.dy;
     }
 
-    //if (interval > 1000) clearInterval(timer); // stop animation
+    // if (interval > 1000) clearInterval(timer); // stop animation
 
   }, 1000 / 60);
 
