@@ -20,6 +20,8 @@ const boidVisualRange = 75;
 const numBoids = 10;
 
 var boids = [];
+const addPredatorButton = document.getElementById("addPredator");
+const clearPredatorsButton = document.getElementById("clearPredators");
 
 function initBoids() {
   for (var i = 0; i < numBoids; i += 1) {
@@ -28,6 +30,7 @@ function initBoids() {
       y: Math.random() * height,
       dx: Math.random() * 10 - 5,
       dy: Math.random() * 10 - 5,
+      isPrey: true,
       history: [],
     };
   }
@@ -40,7 +43,7 @@ function distanceBetweenBoids(boid1, boid2) {
 function keepBoidsWithinBounds(boid) {
   // margin from the edge of the canvas
   // keep width updated
-  const margin = 100;
+  const margin = 130;
   const turnFactor = 1;
 
   // Keep turning the boid until it 
@@ -48,24 +51,23 @@ function keepBoidsWithinBounds(boid) {
   if (boid.x < margin) {
     boid.dx += turnFactor;
   }
-  if (boid.x > width - margin) {
+  if (boid.x > (width - margin)) {
     boid.dx -= turnFactor
   }
   if (boid.y < margin) {
     boid.dy += turnFactor;
   }
-  if (boid.y > height - margin) {
+  if (boid.y > (height - margin)) {
     boid.dy -= turnFactor;
   }
 }
 
-function maintainCohesion(givenBoid) {
-  let turningFactor = 0.01
+function getCenterOfMass(givenBoid, listOfBoids) {
   let numOfBoids = 0;
   let centerOfMassX = 0;
   let centerOfMassY = 0;
 
-  for (let boid of boids) {
+  for (let boid of listOfBoids) {
     if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange) {
       centerOfMassX += boid.x;
       centerOfMassY += boid.y;
@@ -74,12 +76,33 @@ function maintainCohesion(givenBoid) {
   }
 
   if (numOfBoids > 0) {
-    givenBoid.dx += (centerOfMassX/numOfBoids - givenBoid.x) * turningFactor;
-    givenBoid.dy += (centerOfMassY/numOfBoids - givenBoid.y) * turningFactor;
+    return [centerOfMassX / numOfBoids, centerOfMassY / numOfBoids]
+  } return null
+}
+
+// cohesion: steer to move towards the average position (center of mass) of local flockmates
+function maintainCohesion(givenBoid) {
+  let turningFactor = 0.01;
+  let centerOfMass = getCenterOfMass(givenBoid, boids);
+
+  if (centerOfMass != null) {
+    givenBoid.dx += (centerOfMass[0] - givenBoid.x) * turningFactor;
+    givenBoid.dy += (centerOfMass[1] - givenBoid.y) * turningFactor;
   }
 
 }
 
+function getVisibleBoids(givenBoid) {
+  let visibleBoids = [];
+  for (let boid of boids) {
+    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange) {
+      visibleBoids.push(boid);
+    }
+  }
+  return visibleBoids;
+}
+
+// alignment: steer towards the average heading of local flockmates
 function maintainAlignment(givenBoid) {
   let turningFactor = 0.01
   let numOfBoids = 0;
@@ -95,16 +118,17 @@ function maintainAlignment(givenBoid) {
   }
 
   if (numOfBoids > 0) {
-    givenBoid.dx += (velocityX/numOfBoids - givenBoid.dx) * turningFactor;
-    givenBoid.dy += (velocityY/numOfBoids - givenBoid.dy) * turningFactor;
+    givenBoid.dx += (velocityX / numOfBoids - givenBoid.dx) * turningFactor;
+    givenBoid.dy += (velocityY / numOfBoids - givenBoid.dy) * turningFactor;
   }
 }
 
+// separation: steer to avoid crowding local flockmates
 function maintainSeparation(givenBoid) {
   let distanceFactor = 50;
-  let avoidanceFactor = 0.01;
+  let avoidanceFactor = 0.05;
   let positionX = 0;
-  let positionY = 0; 
+  let positionY = 0;
 
   for (let boid of boids) {
     if (distanceBetweenBoids(givenBoid, boid) <= distanceFactor) {
@@ -115,6 +139,114 @@ function maintainSeparation(givenBoid) {
 
   givenBoid.dx += positionX * avoidanceFactor;
   givenBoid.dy += positionY * avoidanceFactor;
+}
+
+function maintainAverageVelocity(givenBoid) {
+  let numOfNeighbors = 0;
+  let avgDx = 0;
+  let avgDy = 0;
+  let velocityAdjustment = 0.05;
+
+  for (let boid of boids) {
+    if (distanceBetweenBoids(givenBoid, boid) < boidVisualRange) {
+      avgDx += boid.dx;
+      avgDy += boid.dy;
+      numOfNeighbors++;
+    }
+  }
+
+  if (numOfNeighbors > 0) {
+    givenBoid.dx += (avgDx / numOfNeighbors - givenBoid.dx) * velocityAdjustment;
+    givenBoid.dy += (avgDy / numOfNeighbors - givenBoid.dy) * velocityAdjustment;
+  }
+}
+
+function limitSpeed(givenBoid) {
+  let speedLimit = 10;
+  // To calculate the speed you need the magnitude (or length) of the velocity vector
+  // https://www.fisicalab.com/en/section/forces-decomposition
+  // velocity -> speed with direction
+  let speed = Math.sqrt(Math.pow(givenBoid.dx, 2) + Math.pow(givenBoid.dy, 2));
+
+  if (speed > speedLimit) {
+    givenBoid.dx = (givenBoid.dx / speed) * speedLimit;
+    givenBoid.dy = (givenBoid.dx / speed) * speedLimit;
+  }
+}
+
+function addPredatorToScene() {
+  var selBoid = boids[0];
+  while (!selBoid.isPrey) {
+    selBoid = boids[Math.floor(Math.random() * boids.length)];
+  }
+  selBoid.isPrey = false;
+
+}
+
+function avoidPredator(givenBoid) {
+  let velocityAdjustment = 0.2;
+  let distanceFactor = 50;
+  let moveX = 0;
+  let moveY = 0;
+
+  if (givenBoid.isPrey) {
+    for (let boid of boids) {
+      if (!boid.isPrey && distanceBetweenBoids(givenBoid, boid) <= distanceFactor) {
+        givenBoid.dx -= (boid.x - givenBoid.x) * velocityAdjustment;
+        givenBoid.dy -= (boid.y - givenBoid.y) * velocityAdjustment;
+        // moveX += givenBoid.x - boid.x;
+        // moveY += givenBoid.y - boid.y;
+      }
+    }
+  }
+}
+
+// Predator moves towards the clossest prey that is straying from the flock
+function attackPrey(givenBoid) {
+  let velocityAdjustment = 0.5;
+
+  if (!givenBoid.isPrey) { // predator
+    let visibleBoids = getVisibleBoids(givenBoid);
+    let targetList = [];
+
+    for (let target of visibleBoids) {
+      targetList.push([target, distanceBetweenBoids(target, givenBoid)])
+    }
+    targetList.sort(function (a, b) {
+      return a[1] - b[1];
+    });
+
+    let clossestBoid = targetList[0][0];
+
+    givenBoid.dx += ((clossestBoid.x  - givenBoid.x) * velocityAdjustment);
+    givenBoid.dy += ((clossestBoid.y  - givenBoid.y) * velocityAdjustment);
+      
+  }
+}
+
+// Go towards the center of mass
+function goToCenter(givenBoid) {
+  let centerX = 0;
+  let centerY = 0;
+  let numOfNeighbors = 0;
+  let velocityAdjustment = 0.005;
+
+  for (let boid of boids) {
+    if (distanceBetweenBoids(givenBoid, boid) < boidVisualRange) {
+      centerX += boid.x;
+      centerY += boid.y;
+      numOfNeighbors++
+    }
+  }
+
+  if (numOfNeighbors > 0) {
+    centerX = centerX / numOfNeighbors;
+    centerY = centerY / numOfNeighbors;
+
+    givenBoid.dx += (centerX - givenBoid.x) * velocityAdjustment;
+    givenBoid.dy += (centerY - givenBoid.y) * velocityAdjustment;
+
+  }
 }
 
 // Main animation loop
@@ -134,6 +266,11 @@ function animationLoop() {
       maintainCohesion(boid);
       maintainAlignment(boid);
       maintainSeparation(boid);
+      maintainAverageVelocity(boid);
+      limitSpeed(boid);
+      goToCenter(boid);
+      avoidPredator(boid);
+      attackPrey(boid);
       drawBoid(ctx, boid);
 
       boid.x += boid.dx;
@@ -175,7 +312,11 @@ function drawBoid(ctx, boid) {
   ctx.rotate(angle);
   ctx.translate(-boid.x, -boid.y);
 
-  ctx.fillStyle = "#1FD5ED";
+  if (boid.isPrey) {
+    ctx.fillStyle = "#1FD5ED";
+  } else {
+    ctx.fillStyle = "#ED371F";
+  }
 
   ctx.beginPath();
   ctx.moveTo(boid.x, boid.y);
@@ -204,4 +345,5 @@ function init() {
   animationLoop()
 }
 
+addPredator.addEventListener('click', addPredatorToScene, false)
 init();
