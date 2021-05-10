@@ -13,15 +13,29 @@
 // allow boids to "perch" when tired
 // add a predator
 
-const width = 750;
+const width = screen.width;
 const height = 750;
 
 const boidVisualRange = 75;
-const numBoids = 10;
+const numBoids = 100;
+let coherenceFactor = 0.01;
+let separationFactor = 0.01;
+let alignmentFactor = 0.01;
 
 var boids = [];
 const addPredatorButton = document.getElementById("addPredator");
 const clearPredatorsButton = document.getElementById("clearPredators");
+const coherenceSlider = document.getElementById("coherenceSlider");
+const coherenceFactorAmount = document.getElementById("coherenceFactorAmount");
+
+const separationSlider = document.getElementById("separationSlider");
+const separationFactorAmount = document.getElementById("separationFactorAmount");
+
+const alignmentSlider = document.getElementById("alignmentSlider");
+const alignmentFactorAmount = document.getElementById("alignmentFactorAmount");
+
+const canvasDOM = document.getElementById("boids");
+
 
 function initBoids() {
   for (var i = 0; i < numBoids; i += 1) {
@@ -82,14 +96,13 @@ function getCenterOfMass(givenBoid, listOfBoids) {
 
 // cohesion: steer to move towards the average position (center of mass) of local flockmates
 function maintainCohesion(givenBoid) {
-  let turningFactor = 0.01;
+  let turningFactor = coherenceFactor;
   let centerOfMass = getCenterOfMass(givenBoid, boids);
 
   if (centerOfMass != null) {
     givenBoid.dx += (centerOfMass[0] - givenBoid.x) * turningFactor;
     givenBoid.dy += (centerOfMass[1] - givenBoid.y) * turningFactor;
   }
-
 }
 
 function getVisibleBoids(givenBoid) {
@@ -104,7 +117,7 @@ function getVisibleBoids(givenBoid) {
 
 // alignment: steer towards the average heading of local flockmates
 function maintainAlignment(givenBoid) {
-  let turningFactor = 0.01
+  let turningFactor = alignmentFactor;
   let numOfBoids = 0;
   let velocityX = 0;
   let velocityY = 0;
@@ -126,7 +139,7 @@ function maintainAlignment(givenBoid) {
 // separation: steer to avoid crowding local flockmates
 function maintainSeparation(givenBoid) {
   let distanceFactor = 50;
-  let avoidanceFactor = 0.05;
+  let avoidanceFactor = separationFactor;
   let positionX = 0;
   let positionY = 0;
 
@@ -183,11 +196,17 @@ function addPredatorToScene() {
 
 }
 
+function clearPredatorsFromScene() {
+  for (let boid of boids) {
+    boid.isPrey = true;
+  }
+
+}
+
 function avoidPredator(givenBoid) {
   let velocityAdjustment = 0.2;
   let distanceFactor = 50;
-  let moveX = 0;
-  let moveY = 0;
+
 
   if (givenBoid.isPrey) {
     for (let boid of boids) {
@@ -204,28 +223,34 @@ function avoidPredator(givenBoid) {
 // Predator moves towards the clossest prey that is straying from the flock
 function attackPrey(givenBoid) {
   let velocityAdjustment = 0.5;
+  let visibleBoids = getVisibleBoids(givenBoid);
 
   if (!givenBoid.isPrey) { // predator
-    let visibleBoids = getVisibleBoids(givenBoid);
-    let targetList = [];
 
-    for (let target of visibleBoids) {
-      targetList.push([target, distanceBetweenBoids(target, givenBoid)])
+    if (visibleBoids.length > 0) {
+      let targetList = [];
+
+
+      for (let target of visibleBoids) {
+        targetList.push([target, distanceBetweenBoids(target, givenBoid)])
+      }
+
+      targetList.sort(function (a, b) {
+        return a[1] - b[1];
+      });
+
+      let clossestBoid = targetList[0][0];
+
+      givenBoid.dx += ((clossestBoid.x - givenBoid.x) * velocityAdjustment);
+      givenBoid.dy += ((clossestBoid.y - givenBoid.y) * velocityAdjustment);
+    } else {
+      goToCenterOfScreen(givenBoid);
     }
-    targetList.sort(function (a, b) {
-      return a[1] - b[1];
-    });
-
-    let clossestBoid = targetList[0][0];
-
-    givenBoid.dx += ((clossestBoid.x  - givenBoid.x) * velocityAdjustment);
-    givenBoid.dy += ((clossestBoid.y  - givenBoid.y) * velocityAdjustment);
-      
   }
 }
 
 // Go towards the center of mass
-function goToCenter(givenBoid) {
+function goToCenterOfMass(givenBoid) {
   let centerX = 0;
   let centerY = 0;
   let numOfNeighbors = 0;
@@ -249,6 +274,12 @@ function goToCenter(givenBoid) {
   }
 }
 
+function goToCenterOfScreen(givenBoid) {
+  let velocityAdjustment = 0.2
+  givenBoid.dx += ((width / 2) - givenBoid.x) * velocityAdjustment;
+  givenBoid.dy += ((height / 2) - givenBoid.y) * velocityAdjustment;
+}
+
 // Main animation loop
 // Problem with set interval occurs if the 
 // number of instructions arent completed before the next loop
@@ -268,7 +299,7 @@ function animationLoop() {
       maintainSeparation(boid);
       maintainAverageVelocity(boid);
       limitSpeed(boid);
-      goToCenter(boid);
+      goToCenterOfMass(boid);
       avoidPredator(boid);
       attackPrey(boid);
       drawBoid(ctx, boid);
@@ -318,10 +349,18 @@ function drawBoid(ctx, boid) {
     ctx.fillStyle = "#ED371F";
   }
 
+  let preySize = 15;
+  let predatorSize = 25;
   ctx.beginPath();
   ctx.moveTo(boid.x, boid.y);
-  ctx.lineTo(boid.x - 15, boid.y + 5);
-  ctx.lineTo(boid.x - 15, boid.y - 5);
+  if (boid.isPrey) {
+    ctx.lineTo(boid.x - preySize, boid.y + 5);
+    ctx.lineTo(boid.x - preySize, boid.y - 5);
+  } else {
+    ctx.lineTo(boid.x - predatorSize, boid.y + 5);
+    ctx.lineTo(boid.x - predatorSize, boid.y - 5);
+  }
+
   ctx.lineTo(boid.x, boid.y);
   ctx.fill();
 
@@ -342,8 +381,31 @@ function drawBoid(ctx, boid) {
 
 function init() {
   initBoids();
-  animationLoop()
+  animationLoop();
+  canvasDOM.width = width;
 }
 
-addPredator.addEventListener('click', addPredatorToScene, false)
+
+
+addPredatorButton.addEventListener('click', addPredatorToScene, false)
+coherenceSlider.oninput = function () {
+  coherenceFactor = coherenceSlider.value;
+  coherenceFactorAmount.innerHTML = coherenceFactor;
+  console.log(coherenceFactor)
+}
+
+clearPredatorsButton.addEventListener('click', clearPredatorsFromScene, false)
+
+
+separationSlider.oninput = function () {
+  separationFactor = separationSlider.value;
+  separationFactorAmount.innerHTML = separationFactor;
+  console.log(separationFactor)
+}
+
+alignmentSlider.oninput = function () {
+  alignmentFactor = alignmentSlider.value;
+  alignmentFactorAmount.innerHTML = alignmentFactor;
+  console.log(alignmentFactor)
+}
 init();
