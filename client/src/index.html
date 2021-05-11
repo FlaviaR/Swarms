@@ -18,6 +18,14 @@
     <button id = "addPredator">Add predator</button>
     <button id = "clearPredators">Clear predators</button> <br><br>
 
+    <span>Number of Boids</span>
+    <input type="range" min="100" max="300" step="50" class="slider" id="numOfBoidsSlider">    
+    <span id = "numOfBoidsSpan"></span>  <br><br> 
+
+    <span>Number of Cliques</span>
+    <input type="range" min="1" max="5" step="1" class="slider" id="cliqueSlider">    
+    <span id = "cliqueAmountSpan"></span>  <br><br> 
+
     <span>Coherence</span>
     <input type="range" min="0" max="0.02" step="0.002" class="slider" id="coherenceSlider">
     <span id = "coherenceFactorAmount"></span>  <br><br> 
@@ -29,10 +37,6 @@
     <span>Alignment</span>
     <input type="range" min="0" max="0.1" step="0.01" class="slider" id="alignmentSlider">    
     <span id = "alignmentFactorAmount"></span>  <br><br> 
-
-    <span>Number of Cliques</span>
-    <input type="range" min="1" max="5" step="1" class="slider" id="cliqueSlider">    
-    <span id = "cliqueAmountSpan"></span>  <br><br> 
 
     <script src="dist/bundle.js"></script>
 

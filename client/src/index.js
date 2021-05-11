@@ -17,7 +17,7 @@ const width = screen.width;
 const height = 750;
 
 const boidVisualRange = 75;
-const numBoids = 300;
+let numBoids = 100;
 let numOfCliques = 1;
 let cliqueColors = [];
 let coherenceFactor = 0.01;
@@ -39,6 +39,9 @@ const alignmentFactorAmount = document.getElementById("alignmentFactorAmount");
 
 const cliqueSlider = document.getElementById("cliqueSlider");
 const cliqueAmountSpan = document.getElementById("cliqueAmountSpan");
+
+const numOfBoidsSlider = document.getElementById("numOfBoidsSlider");
+const numOfBoidsSpan = document.getElementById("numOfBoidsSpan");
 
 const canvasDOM = document.getElementById("boids");
 
@@ -68,6 +71,7 @@ function updateBoidCliqueColors() {
 }
 
 function initBoids() {
+  boids = [];
   for (var i = 0; i < numBoids; i += 1) {
     boids[boids.length] = {
       x: Math.random() * width,
@@ -440,6 +444,13 @@ alignmentSlider.oninput = function () {
   alignmentFactor = alignmentSlider.value;
   alignmentFactorAmount.innerHTML = alignmentFactor;
   console.log(alignmentFactor)
+}
+
+numOfBoidsSlider.oninput = function () {
+  numBoids = numOfBoidsSlider.value;
+  numOfBoidsSpan.innerHTML = numBoids;
+  initBoids();
+  console.log(numBoids)
 }
 
 cliqueSlider.oninput = function () {
