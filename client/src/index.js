@@ -17,7 +17,9 @@ const width = screen.width;
 const height = 750;
 
 const boidVisualRange = 75;
-const numBoids = 100;
+const numBoids = 300;
+let numOfCliques = 1;
+let cliqueColors = [];
 let coherenceFactor = 0.01;
 let separationFactor = 0.01;
 let alignmentFactor = 0.01;
@@ -25,6 +27,7 @@ let alignmentFactor = 0.01;
 var boids = [];
 const addPredatorButton = document.getElementById("addPredator");
 const clearPredatorsButton = document.getElementById("clearPredators");
+
 const coherenceSlider = document.getElementById("coherenceSlider");
 const coherenceFactorAmount = document.getElementById("coherenceFactorAmount");
 
@@ -34,8 +37,35 @@ const separationFactorAmount = document.getElementById("separationFactorAmount")
 const alignmentSlider = document.getElementById("alignmentSlider");
 const alignmentFactorAmount = document.getElementById("alignmentFactorAmount");
 
+const cliqueSlider = document.getElementById("cliqueSlider");
+const cliqueAmountSpan = document.getElementById("cliqueAmountSpan");
+
 const canvasDOM = document.getElementById("boids");
 
+
+function createCliqueColors() {
+  cliqueColors = [];
+  for (var i = 0; i < numOfCliques; i++) {
+    cliqueColors.push(getColorCode());
+  }
+}
+
+function getColorCode() {
+  var makeColorCode = '0123456789ABCDEF';
+  var code = '#';
+  for (var count = 0; count < 6; count++) {
+     code =code+ makeColorCode[Math.floor(Math.random() * 16)];
+  }
+  return code;
+}
+
+function updateBoidCliqueColors() {
+  for (var i = 0; i < numBoids; i += 1) {
+    boid = boids[i];
+    boid.clique= i % numOfCliques;
+    boid.cliqueColor=cliqueColors[i % numOfCliques];
+  }
+}
 
 function initBoids() {
   for (var i = 0; i < numBoids; i += 1) {
@@ -45,6 +75,8 @@ function initBoids() {
       dx: Math.random() * 10 - 5,
       dy: Math.random() * 10 - 5,
       isPrey: true,
+      clique: i % numOfCliques,
+      cliqueColor: cliqueColors[i % numOfCliques],
       history: [],
     };
   }
@@ -82,7 +114,7 @@ function getCenterOfMass(givenBoid, listOfBoids) {
   let centerOfMassY = 0;
 
   for (let boid of listOfBoids) {
-    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange) {
+    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange && (givenBoid.clique === boid.clique)) {
       centerOfMassX += boid.x;
       centerOfMassY += boid.y;
       numOfBoids++;
@@ -123,7 +155,7 @@ function maintainAlignment(givenBoid) {
   let velocityY = 0;
 
   for (let boid of boids) {
-    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange) {
+    if (distanceBetweenBoids(givenBoid, boid) <= boidVisualRange && (givenBoid.clique === boid.clique)) {
       velocityX += boid.dx;
       velocityY += boid.dy;
       numOfBoids++;
@@ -144,7 +176,7 @@ function maintainSeparation(givenBoid) {
   let positionY = 0;
 
   for (let boid of boids) {
-    if (distanceBetweenBoids(givenBoid, boid) <= distanceFactor) {
+    if (distanceBetweenBoids(givenBoid, boid) <= distanceFactor && (givenBoid.clique === boid.clique)) {
       positionX += (givenBoid.x - boid.x);
       positionY += (givenBoid.y - boid.y);
     }
@@ -161,7 +193,7 @@ function maintainAverageVelocity(givenBoid) {
   let velocityAdjustment = 0.05;
 
   for (let boid of boids) {
-    if (distanceBetweenBoids(givenBoid, boid) < boidVisualRange) {
+    if (distanceBetweenBoids(givenBoid, boid) < boidVisualRange && (givenBoid.clique === boid.clique)) {
       avgDx += boid.dx;
       avgDy += boid.dy;
       numOfNeighbors++;
@@ -344,21 +376,21 @@ function drawBoid(ctx, boid) {
   ctx.translate(-boid.x, -boid.y);
 
   if (boid.isPrey) {
-    ctx.fillStyle = "#1FD5ED";
+    ctx.fillStyle = boid.cliqueColor;
   } else {
     ctx.fillStyle = "#ED371F";
   }
 
   let preySize = 15;
-  let predatorSize = 25;
+  let predatorSize = 35;
   ctx.beginPath();
   ctx.moveTo(boid.x, boid.y);
   if (boid.isPrey) {
     ctx.lineTo(boid.x - preySize, boid.y + 5);
     ctx.lineTo(boid.x - preySize, boid.y - 5);
   } else {
-    ctx.lineTo(boid.x - predatorSize, boid.y + 5);
-    ctx.lineTo(boid.x - predatorSize, boid.y - 5);
+    ctx.lineTo(boid.x - predatorSize, boid.y + 10);
+    ctx.lineTo(boid.x - predatorSize, boid.y - 10);
   }
 
   ctx.lineTo(boid.x, boid.y);
@@ -380,6 +412,7 @@ function drawBoid(ctx, boid) {
 //   };
 
 function init() {
+  createCliqueColors();
   initBoids();
   animationLoop();
   canvasDOM.width = width;
@@ -408,4 +441,12 @@ alignmentSlider.oninput = function () {
   alignmentFactorAmount.innerHTML = alignmentFactor;
   console.log(alignmentFactor)
 }
+
+cliqueSlider.oninput = function () {
+  numOfCliques = cliqueSlider.value;
+  cliqueAmountSpan.innerHTML = numOfCliques;
+  createCliqueColors();
+  updateBoidCliqueColors();
+}
+
 init();
