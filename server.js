@@ -29,3 +29,8 @@ app.get('*', (req, res) => {
 
 const port = process.env.PORT || 3002
 app.listen(port, () => console.log(`Server listening at ${port}`))
+
+app.use('*.js', (req, res, next) => {
+    res.set('Content-Type', 'text/javascript')
+    next();
+})
