@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, 'client')));
 
 // catchall for when no routes are matched
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname + '/client/src/index.html'));
+    res.sendFile(path.join(__dirname + '/client/index.html'));
 });
 
 const port = process.env.PORT || 3002
