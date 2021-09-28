@@ -25,6 +25,7 @@ let separationFactor = 0.01;
 let alignmentFactor = 0.01;
 
 var boids = [];
+var obstacles = [];
 const addPredatorButton = document.getElementById("addPredator");
 const clearPredatorsButton = document.getElementById("clearPredators");
 
@@ -57,7 +58,7 @@ function getColorCode() {
   var makeColorCode = '0123456789ABCDEF';
   var code = '#';
   for (var count = 0; count < 6; count++) {
-     code =code+ makeColorCode[Math.floor(Math.random() * 16)];
+    code = code + makeColorCode[Math.floor(Math.random() * 16)];
   }
   return code;
 }
@@ -65,8 +66,8 @@ function getColorCode() {
 function updateBoidCliqueColors() {
   for (var i = 0; i < numBoids; i += 1) {
     boid = boids[i];
-    boid.clique= i % numOfCliques;
-    boid.cliqueColor=cliqueColors[i % numOfCliques];
+    boid.clique = i % numOfCliques;
+    boid.cliqueColor = cliqueColors[i % numOfCliques];
   }
 }
 
@@ -236,13 +237,30 @@ function clearPredatorsFromScene() {
   for (let boid of boids) {
     boid.isPrey = true;
   }
+}
+
+function avoidObstacle(givenBoid) {
+  let velocityAdjustment = 0.05;
+  let distanceFactor = 30;
+
+  let distanceFromObstacle = 0
+
+  for (let obstacle of obstacles) {
+    distanceFromObstacle = getDistanceFromPoint2Circle(givenBoid.x, givenBoid.y, obstacle.x, obstacle.y, obstacle.radius)
+    // subtracting values traps it inside of the circle
+    if (distanceFromObstacle <= distanceFactor) {
+      givenBoid.dx += (givenBoid.x - obstacle.x) * velocityAdjustment;
+      givenBoid.dy += (givenBoid.y - obstacle.y) * velocityAdjustment;
+      // moveX += givenBoid.x - boid.x;
+      // moveY += givenBoid.y - boid.y;
+    }
+  }
 
 }
 
 function avoidPredator(givenBoid) {
   let velocityAdjustment = 0.2;
   let distanceFactor = 50;
-
 
   if (givenBoid.isPrey) {
     for (let boid of boids) {
@@ -310,6 +328,38 @@ function goToCenterOfMass(givenBoid) {
   }
 }
 
+function getDistanceFromPoint2Circle(x, y, h, k, r) {
+  return Math.abs(Math.sqrt(Math.pow((x - h), 2) + Math.pow((y - k), 2)) - r)
+}
+
+function getCursorPosition(event) {
+  const rect = canvasDOM.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  return [x, y]
+}
+
+canvasDOM.addEventListener('mousedown', function (e) {
+  //addObstacle(e)
+  addObstacle(e)
+})
+
+function drawObstacles(ctx) {
+  for (let obstacle of obstacles) {
+    ctx.beginPath();
+    ctx.arc(obstacle.x, obstacle.y, 50, 0, 2 * Math.PI, false);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#FF0000'
+    ctx.stroke();
+  }
+}
+
+function addObstacle(e) {
+  let cursorPos = getCursorPosition(e)
+  obstacles.push({ x: cursorPos[0], y: cursorPos[1], radius: 100 })
+  console.log(obstacles[obstacles.length - 1])
+}
+
 function goToCenterOfScreen(givenBoid) {
   let velocityAdjustment = 0.2
   givenBoid.dx += ((width / 2) - givenBoid.x) * velocityAdjustment;
@@ -337,6 +387,8 @@ function animationLoop() {
       limitSpeed(boid);
       goToCenterOfMass(boid);
       avoidPredator(boid);
+      avoidObstacle(boid);
+      drawObstacles(ctx);
       attackPrey(boid);
       drawBoid(ctx, boid);
 
@@ -370,6 +422,7 @@ function animationLoop() {
   // Schedule the next frame
   //window.requestAnimationFrame(animationLoop);
 }
+
 
 function drawBoid(ctx, boid) {
   const angle = Math.atan2(boid.dy, boid.dx);
