@@ -94,21 +94,21 @@ function distanceBetweenBoids(boid1, boid2) {
 function keepBoidsWithinBounds(boid) {
   // margin from the edge of the canvas
   // keep width updated
-  const margin = 130;
+  const margin = 170;
   const turnFactor = 1;
 
   // Keep turning the boid until it 
   // is no longer close to the margin
-  if (boid.x < margin) {
+  if (boid.x <= margin) {
     boid.dx += turnFactor;
   }
-  if (boid.x > (width - margin)) {
+  if (boid.x >= (width - margin)) {
     boid.dx -= turnFactor
   }
-  if (boid.y < margin) {
+  if (boid.y <= margin) {
     boid.dy += turnFactor;
   }
-  if (boid.y > (height - margin)) {
+  if (boid.y >= (height - margin)) {
     boid.dy -= turnFactor;
   }
 }
